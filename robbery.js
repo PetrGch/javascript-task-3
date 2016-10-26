@@ -9,6 +9,7 @@ exports.isStar = false;
 var DAYS = ['ВС', 'ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ'];
 
 var freeTime = {};
+var checkFreeTime = false;
 var remainsTime = {
     endDay: 1439,
     rest: 0
@@ -23,8 +24,10 @@ var remainsTime = {
  * @returns {Object}
  */
 exports.getAppropriateMoment = function (schedule, duration, workingHours) {
+    console.info(schedule, duration, workingHours);
     convertBankInf(workingHours, 2);
     iterateGangObject(schedule);
+    countTime(duration);
 
     return {
 
@@ -33,7 +36,7 @@ exports.getAppropriateMoment = function (schedule, duration, workingHours) {
          * @returns {Boolean}
          */
         exists: function () {
-            return countTime(duration);
+            return checkFreeTime;
         },
 
         /**
@@ -44,9 +47,7 @@ exports.getAppropriateMoment = function (schedule, duration, workingHours) {
          * @returns {String}
          */
         format: function (template) {
-            template = convertText();
-
-            return template;
+            return convertText(template);
         },
 
         /**
@@ -99,14 +100,14 @@ function convertGangInf(item) {
     var setDateTo = createNewDate(item.to);
     var resetZone = (freeTime.timeZone - setDateTo[3]) * 60;
     var start = setDateFrom[1] * 60 + setDateFrom[2] + resetZone;
-    var end = setDateTo[1] * 60 + setDateTo[2] + resetZone - 1;
+    var end = setDateTo[1] * 60 + setDateTo[2] + resetZone;
     var arrayOfMin = freeTime[setDateFrom[0]];
 
     if (setDateFrom[0] !== setDateTo[0]) {
         arrayOfMin = freeTime[setDateFrom[0]];
         compareTime(start, remainsTime.endDay, arrayOfMin);
         arrayOfMin = freeTime[setDateTo[0]];
-        compareTime(0, end, arrayOfMin);
+        compareTime(0, end - 1, arrayOfMin);
     } else {
         compareTime(start, end, arrayOfMin);
     }
@@ -138,15 +139,14 @@ function compareTime(start, end, arr) {
 }
 
 function countTime(duration) {
-    var check = false;
     var day = Object.keys(freeTime);
     var i = 3;
     while (i < day.length) {
         var objectOfMin = freeTime[day[i]].join('').match(/[1]+/g);
         freeTime[day[i]].length = 0;
         if (objectOfMin instanceof Array) {
-            var findFreeTime = objectOfMin.map(calculateTime);
-            check = findFreeTime.length !== 0;
+            var findFreeTime = objectOfMin.filter(calculateTime);
+            checkFreeTime = findFreeTime.length !== 0;
         }
         i++;
     }
@@ -158,25 +158,26 @@ function countTime(duration) {
             return lengthTime;
         }
     }
-
-    return check;
 }
 
-function convertText() {
-    var findDay = '';
-    var time = '';
-    var token = true;
+function convertText(template) {
+    if (!checkFreeTime) {
+        return '';
+    }
+
+    var regD = /%[D]{2}/;
+    var regT = /%[HM]{2}/;
     var day = Object.keys(freeTime);
     for (var i = 3, j = 0; i < day.length; i++, j++) {
-        if (freeTime[day[i]][j] && token) {
-            findDay = day[i];
+        if (freeTime[day[i]][j]) {
             var hours = parseInt((freeTime.timeFrom + 90) / 60);
             var minute = (freeTime.timeFrom + 90) % 60;
-            time = hours + ':' + minute;
-            token = false;
+            template = template.replace(regD, day[i])
+                                .replace(regT, hours)
+                                .replace(regT, minute);
+            break;
         }
     }
-    var resultString = (time) ? ('Метим на ' + findDay + ', старт в ' + time + '!') : '';
 
-    return resultString;
+    return template;
 }
