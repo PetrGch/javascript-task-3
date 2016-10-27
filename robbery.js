@@ -7,13 +7,11 @@
 exports.isStar = false;
 
 var DAYS = ['ВС', 'ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ'];
+var DAYDURATION = 1439;
 
-var freeTime = {};
 var checkFreeTime = false;
-var remainsTime = {
-    endDay: 1439,
-    rest: 0
-};
+var freeTime = {};
+var startTime = {};
 
 /**
  * @param {Object} schedule – Расписание Банды
@@ -47,7 +45,7 @@ exports.getAppropriateMoment = function (schedule, duration, workingHours) {
          * @returns {String}
          */
         format: function (template) {
-            return convertText(template);
+            return convertText(template, 'first');
         },
 
         /**
@@ -84,6 +82,7 @@ function convertBankInf(item, index) {
 
     for (var i = 1; i <= index + 1; i++) {
         freeTime[DAYS[i]] = Array(timeTo - timeFrom);
+        startTime[DAYS[i]] = [];
     }
 }
 
@@ -105,9 +104,9 @@ function convertGangInf(item) {
 
     if (setDateFrom[0] !== setDateTo[0]) {
         arrayOfMin = freeTime[setDateFrom[0]];
-        compareTime(start, remainsTime.endDay, arrayOfMin);
+        compareTime(start, DAYDURATION, arrayOfMin);
         arrayOfMin = freeTime[setDateTo[0]];
-        compareTime(0, end - 1, arrayOfMin);
+        compareTime(0, end, arrayOfMin);
     } else {
         compareTime(start, end, arrayOfMin);
     }
@@ -128,9 +127,9 @@ function compareTime(start, end, arr) {
     var bankOn = freeTime.timeFrom;
     var bankOff = freeTime.timeTo;
 
-    for (var i = bankOn; i <= bankOff; i++) {
+    for (var i = bankOn; i < bankOff; i++) {
         var pos = i - bankOn;
-        if ((i < start || i > end) && arr[pos] !== 0) {
+        if ((i < start || i >= end) && arr[pos] !== 0) {
             arr[pos] = 1;
         } else {
             arr[pos] = 0;
@@ -140,44 +139,103 @@ function compareTime(start, end, arr) {
 
 function countTime(duration) {
     var day = Object.keys(freeTime);
-    var i = 3;
-    while (i < day.length) {
+    for (var i = 3; i < day.length; i++) {
+        var arrayToString = freeTime[day[i]].join('');
+        setStartTIme(arrayToString, day[i]);
         var objectOfMin = freeTime[day[i]].join('').match(/[1]+/g);
         freeTime[day[i]].length = 0;
         if (objectOfMin instanceof Array) {
-            var findFreeTime = objectOfMin.filter(calculateTime);
+            var dur = { duration: duration, day: day[i] };
+            var findFreeTime = objectOfMin.filter(calculateTime, dur);
             checkFreeTime = findFreeTime.length !== 0;
-        }
-        i++;
-    }
-    function calculateTime(item) {
-        var lengthTime = item.length;
-        if (lengthTime >= duration) {
-            freeTime[day[i]].push(lengthTime);
-
-            return lengthTime;
         }
     }
 }
 
-function convertText(template) {
+function setStartTIme(string, day) {
+    for (var i = 0; i < string.length; i++) {
+        if (string[i] === '1' && string[i - 1] === undefined) {
+            startTime[day].push(i);
+        }
+        if (string[i] === '1' && string[i - 1] === '0') {
+            startTime[day].push(i);
+        }
+    }
+}
+
+/**
+ * @this {Object} duration and day – Проставляет данные о начале ограбления
+ */
+
+function calculateTime(item) {
+    var lengthTime = item.length;
+    if (lengthTime >= this.duration) {
+        freeTime[this.day].push(lengthTime);
+
+        return lengthTime;
+    }
+
+    if (lengthTime < this.duration) {
+        freeTime[this.day].push(0);
+    }
+}
+
+function convertText(template, amount) {
     if (!checkFreeTime) {
         return '';
     }
 
-    var regD = /%[D]{2}/;
-    var regT = /%[HM]{2}/;
+    if (amount === 'first') {
+        return convertOneMessage(template);
+    }
+}
+
+function convertOneMessage(template) {
     var day = Object.keys(freeTime);
-    for (var i = 3, j = 0; i < day.length; i++, j++) {
-        if (freeTime[day[i]][j]) {
-            var hours = parseInt((freeTime.timeFrom + 90) / 60);
-            var minute = (freeTime.timeFrom + 90) % 60;
-            template = template.replace(regD, day[i])
-                                .replace(regT, hours)
-                                .replace(regT, minute);
-            break;
+    var data = {};
+    for (var i = 3; i < day.length; i++) {
+        var findTime = findFirstTime(freeTime[day[i]], day[i]);
+        if (typeof findTime === 'object' && findTime !== undefined) {
+            Object.defineProperties(data, {
+                template: {
+                    value: template,
+                    enumerable: true,
+                    writable: true
+                },
+                time: {
+                    value: findTime,
+                    enumerable: true,
+                    writable: true
+                },
+                date: {
+                    value: day[i],
+                    enumerable: true,
+                    writable: true
+                }
+            });
+
+            return filterDays(data);
         }
     }
+}
+
+function findFirstTime(time, day) {
+    for (var i = 0; i < time.length; i++) {
+        if (time[i] !== 0) {
+
+            return { dur: time[i], start: startTime[day][i] };
+        }
+    }
+}
+
+function filterDays(data) {
+    var regD = /%[D]{2}/;
+    var regT = /%[HM]{2}/;
+    var hours = parseInt((freeTime.timeFrom + data.time.start) / 60) || '00';
+    var minute = (freeTime.timeFrom + data.time.start) % 60 || '00';
+    var template = data.template.replace(regD, data.date)
+                                .replace(regT, hours)
+                                .replace(regT, minute);
 
     return template;
 }
