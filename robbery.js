@@ -7,7 +7,7 @@
 exports.isStar = false;
 
 var DAYS = ['ВС', 'ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ'];
-var DAYDURATION = 1439;
+var DAYDURATION = 1440;
 
 var checkFreeTime = false;
 var freeTime = {};
@@ -100,15 +100,35 @@ function convertGangInf(item) {
     var resetZone = (freeTime.timeZone - setDateTo[3]) * 60;
     var start = setDateFrom[1] * 60 + setDateFrom[2] + resetZone;
     var end = setDateTo[1] * 60 + setDateTo[2] + resetZone;
-    var arrayOfMin = freeTime[setDateFrom[0]];
+    var arrayOfMinFrom = freeTime[setDateFrom[0]];
+    var arrayOfMinTo = freeTime[setDateTo[0]];
 
-    if (setDateFrom[0] !== setDateTo[0]) {
-        arrayOfMin = freeTime[setDateFrom[0]];
-        compareTime(start, DAYDURATION, arrayOfMin);
-        arrayOfMin = freeTime[setDateTo[0]];
-        compareTime(0, end, arrayOfMin);
-    } else {
-        compareTime(start, end, arrayOfMin);
+    var data = {
+        dayFrom: setDateFrom[0],
+        dayTo: setDateTo[0],
+        start: start,
+        end: end,
+        arrFrom: arrayOfMinFrom,
+        arrTo: arrayOfMinTo
+    };
+
+    setInterval(data);
+}
+
+function setInterval(data) {
+    if (data.dayFrom === data.dayTo) {
+        compareTime(data.start, data.end, data.arrFrom);
+    }
+    if ((data.dayFrom !== data.dayTo) && data.dayFrom === DAYS[0]) {
+        compareTime(0, data.end, data.arrTo);
+    }
+    if ((data.dayFrom !== data.dayTo) && data.dayTo === DAYS[4]) {
+        compareTime(data.start, DAYDURATION, data.arrFrom);
+    }
+    if ((data.dayFrom !== data.dayTo) && data.dayFrom !== DAYS[0] &&
+                                         data.dayTo !== DAYS[4]) {
+        compareTime(data.start, DAYDURATION, data.arrFrom);
+        compareTime(0, data.end, data.arrTo);
     }
 }
 
