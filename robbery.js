@@ -184,26 +184,19 @@ function compareTime(start, end, arr) {
 function countTime(duration) {
     var day = Object.keys(freeTime);
     for (var i = 3; i < day.length; i++) {
-        var arrayToString = freeTime[day[i]].join('') || 0;
+        var arrayToString = freeTime[day[i]].join('');
         setStartTIme(arrayToString, day[i]);
-        var objectOfMin = freeTime[day[i]].join('').match(/[1]+/g) || DAYDURATION;
+        var objectOfMin = freeTime[day[i]].join('').match(/[1]+/g);
         freeTime[day[i]].length = 0;
         if (objectOfMin instanceof Array) {
             var dur = { duration: duration, day: day[i] };
             var findFreeTime = objectOfMin.filter(calculateTime, dur);
             checkFreeTime = findFreeTime.length !== 0;
-        } else {
-            freeTime[day[i]].push(objectOfMin);
-            checkFreeTime = true;
         }
     }
 }
 
 function setStartTIme(string, day) {
-    if (typeof string === 'number') {
-        startTime[day].push(string);
-    }
-
     for (var i = 0; i < string.length; i++) {
         if (string[i] === '1' && string[i - 1] === undefined) {
             startTime[day].push(i);
