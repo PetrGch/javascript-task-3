@@ -103,6 +103,15 @@ function convertGangInf(item) {
     var arrayOfMinFrom = freeTime[setDateFrom[0]];
     var arrayOfMinTo = freeTime[setDateTo[0]];
 
+    if (start > DAYDURATION) {
+        start = 1440;
+    }
+    if (end < 0) {
+        var dayIndex = DAYS.indexOf(setDateTo[0]);
+        setDateTo = DAYS[dayIndex - 1];
+        end = DAYDURATION + end;
+    }
+
     var data = {
         dayFrom: setDateFrom[0],
         dayTo: setDateTo[0],
@@ -252,7 +261,9 @@ function filterDays(data) {
     var regD = /%[D]{2}/;
     var regT = /%[HM]{2}/;
     var hours = parseInt((freeTime.timeFrom + data.time.start) / 60) || '00';
-    var minute = (freeTime.timeFrom + data.time.start) % 60 || '00';
+    hours = (hours.length === 1) ? '0' + hours : hours;
+    var minute = String((freeTime.timeFrom + data.time.start) % 60) || '00';
+    minute = (minute.length === 1) ? '0' + minute : minute;
     var template = data.template.replace(regD, data.date)
                                 .replace(regT, hours)
                                 .replace(regT, minute);
