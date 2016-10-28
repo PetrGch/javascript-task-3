@@ -22,7 +22,6 @@ var startTime = {};
  * @returns {Object}
  */
 exports.getAppropriateMoment = function (schedule, duration, workingHours) {
-    console.info(schedule, duration, workingHours);
     convertBankInf(workingHours, 2);
     iterateGangObject(schedule);
     countTime(duration);
@@ -283,7 +282,7 @@ function findFirstTime(time, day) {
 function filterDays(data) {
     var regD = /%[D]{2}/;
     var regT = /%[HM]{2}/;
-    var hours = parseInt((freeTime.timeFrom + data.time.start) / 60) || '00';
+    var hours = String(parseInt((freeTime.timeFrom + data.time.start) / 60)) || '00';
     hours = (hours.length === 1) ? '0' + hours : hours;
     var minute = String((freeTime.timeFrom + data.time.start) % 60) || '00';
     minute = (minute.length === 1) ? '0' + minute : minute;
