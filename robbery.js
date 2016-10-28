@@ -100,27 +100,43 @@ function convertGangInf(item) {
     var resetZone = (freeTime.timeZone - setDateTo[3]) * 60;
     var start = setDateFrom[1] * 60 + setDateFrom[2] + resetZone;
     var end = setDateTo[1] * 60 + setDateTo[2] + resetZone;
-    var arrayOfMinFrom = freeTime[setDateFrom[0]];
-    var arrayOfMinTo = freeTime[setDateTo[0]];
-
-    if (start > DAYDURATION) {
-        start = 1440;
-    }
-    if (end < 0) {
-        var dayIndex = DAYS.indexOf(setDateTo[0]);
-        setDateTo = DAYS[dayIndex - 1];
-        end = DAYDURATION + end;
-    }
-
+    var dayFrom = setDateFrom[0];
+    var dayTo = setDateTo[0];
     var data = {
-        dayFrom: setDateFrom[0],
-        dayTo: setDateTo[0],
+        dayFrom: dayFrom,
+        dayTo: dayTo,
         start: start,
-        end: end,
-        arrFrom: arrayOfMinFrom,
-        arrTo: arrayOfMinTo
+        end: end
     };
+    checkInterval(data, setDateTo[0]);
+}
 
+function checkInterval(data, index) {
+    if (data.end > DAYDURATION && data.start <= DAYDURATION) {
+        data.dayTo = DAYS[DAYS.indexOf(index) + 1];
+        data.end = data.end - DAYDURATION;
+    } else if (data.start < 0 && data.end >= 0) {
+        data.dayFrom = DAYS[DAYS.indexOf(index) - 1];
+        data.start = DAYDURATION + data.start;
+    } else if (data.start < 0 && data.end < 0) {
+        data.dayFrom = DAYS[DAYS.indexOf(index) - 1];
+        data.dayTo = DAYS[DAYS.indexOf(index) - 1];
+        data.start = DAYDURATION + data.start;
+        data.end = DAYDURATION + data.end;
+    } else if (data.start > DAYDURATION && data.end > DAYDURATION) {
+        data.dayFrom = DAYS[DAYS.indexOf(index) + 1];
+        data.dayTo = DAYS[DAYS.indexOf(index) + 1];
+        data.start = data.start - DAYDURATION;
+        data.end = data.end - DAYDURATION;
+    }
+    data = {
+        dayFrom: data.dayFrom,
+        dayTo: data.dayTo,
+        start: data.start,
+        end: data.end,
+        arrFrom: freeTime[data.dayFrom],
+        arrTo: freeTime[data.dayTo]
+    };
     setInterval(data);
 }
 
@@ -156,7 +172,7 @@ function compareTime(start, end, arr) {
     var bankOn = freeTime.timeFrom;
     var bankOff = freeTime.timeTo;
 
-    for (var i = bankOn; i < bankOff; i++) {
+    for (var i = bankOn; i <= bankOff; i++) {
         var pos = i - bankOn;
         if ((i < start || i >= end) && arr[pos] !== 0) {
             arr[pos] = 1;
@@ -169,19 +185,26 @@ function compareTime(start, end, arr) {
 function countTime(duration) {
     var day = Object.keys(freeTime);
     for (var i = 3; i < day.length; i++) {
-        var arrayToString = freeTime[day[i]].join('');
+        var arrayToString = freeTime[day[i]].join('') || 0;
         setStartTIme(arrayToString, day[i]);
-        var objectOfMin = freeTime[day[i]].join('').match(/[1]+/g);
+        var objectOfMin = freeTime[day[i]].join('').match(/[1]+/g) || DAYDURATION;
         freeTime[day[i]].length = 0;
         if (objectOfMin instanceof Array) {
             var dur = { duration: duration, day: day[i] };
             var findFreeTime = objectOfMin.filter(calculateTime, dur);
             checkFreeTime = findFreeTime.length !== 0;
+        } else {
+            freeTime[day[i]].push(objectOfMin);
+            checkFreeTime = true;
         }
     }
 }
 
 function setStartTIme(string, day) {
+    if (typeof string === 'number') {
+        startTime[day].push(string);
+    }
+
     for (var i = 0; i < string.length; i++) {
         if (string[i] === '1' && string[i - 1] === undefined) {
             startTime[day].push(i);
