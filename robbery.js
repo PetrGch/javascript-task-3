@@ -17,6 +17,7 @@ var MINUTES_IN_DAY = 24 * 60;
  * @param {String} workingHours.to – Время закрытия, например, "18:00+5"
  * @returns {Object}
  */
+
 exports.getAppropriateMoment = function (schedule, duration, workingHours) {
     var bankSchedual = parseBankObj(workingHours);
     var gangSchedule = parseGangObj(schedule, bankSchedual[2]);
@@ -240,7 +241,7 @@ function findFirstInput(freeTime) {
 
 function showMessage(template, freeTime) {
     var token = true;
-    var timeData = []
+    var timeData = [];
     freeTime.forEach(function (item) {
         for (var i = 0; i < item.dur.length; i++) {
             if (item.dur[i] && token) {
