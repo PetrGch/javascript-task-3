@@ -200,16 +200,25 @@ function sortArr(forEachDay, indexForDay, duration) {
         return false;
     }
 
+    var regTime = forEachDay.match(/[1]+/g);
+
+    if (regTime) {
+        regTime = regTime.map(function (item) {
+            if (item.length >= duration) {
+                return item.length;
+            }
+
+            return false;
+        });
+    } else {
+        regTime = [false];
+    }
+
+    return calculateDuration(regTime, indexForDay, forEachDay);
+}
+
+function calculateDuration(regTime, indexForDay, forEachDay) {
     var dataSortedTime = {};
-
-    var regTime = forEachDay.match(/[1]+/g).map(function (item) {
-        if (item.length >= duration) {
-
-            return item.length;
-        }
-
-        return false;
-    });
 
     dataSortedTime.dur = regTime;
     dataSortedTime.day = DAYS[indexForDay];
