@@ -6,7 +6,7 @@
  */
 exports.isStar = false;
 
-var DAYS = ['ВС', 'ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ'];
+var DAYS = ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'];
 var MINUTES_IN_DAY = 24 * 60;
 
 /**
@@ -182,12 +182,10 @@ function checkGangTime(arrGangTime, duration) {
     var sortedTime = [];
 
     for (var i = 0; i < arrGangTime.length; i++) {
-        if ((i % 1440) === 0) {
+        if ((i % 1440) === 0 && indexForDay < 3) {
             var forEachDay = arrGangTime.slice(i, (i + 1440)).join('');
             sortedTime = sortArr(forEachDay, indexForDay, duration);
             indexForDay++;
-        }
-        if (sortedTime && (i % 1440) === 0) {
             timeData.push(sortedTime);
         }
     }
@@ -196,10 +194,6 @@ function checkGangTime(arrGangTime, duration) {
 }
 
 function sortArr(forEachDay, indexForDay, duration) {
-    if (indexForDay < 1 || indexForDay > 3) {
-        return false;
-    }
-
     var regTime = forEachDay.match(/[1]+/g);
 
     if (regTime) {
