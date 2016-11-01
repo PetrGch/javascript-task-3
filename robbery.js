@@ -66,7 +66,7 @@ function parseBankObj(workingHours) {
     var objectProp = Object.keys(workingHours);
     for (var i = 0; i < objectProp.length; i++) {
         time = parseTime(workingHours[objectProp[i]]);
-        bankSchedual.push((Number(time[0]) + Number(time[1])) * 60);
+        bankSchedual.push((Number(time[0]) * 60) + Number(time[1]));
     }
     bankSchedual.push(Number(time[2]));
 
