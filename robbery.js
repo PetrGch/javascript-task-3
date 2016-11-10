@@ -111,7 +111,7 @@ function parsEachDay(personalTime, timeZone) {
         var convertTime = parseTime(personalTime[item], true);
         var resetZone = 0;
         var dayIndex = DAYS.indexOf(convertTime[0]);
-        var timeZoneOfGang = Number(convertTime[3])
+        var timeZoneOfGang = Number(convertTime[3]);
         if (timeZoneOfGang !== timeZone) {
             resetZone = (timeZone - timeZoneOfGang) * MINUTES_IN_HOUR;
         }
