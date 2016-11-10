@@ -7,7 +7,10 @@
 exports.isStar = false;
 
 var DAYS = ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'];
-var MINUTES_IN_DAY = 24 * 60;
+var HOURS_IN_DAY = 24;
+var MINUTES_IN_HOUR = 60;
+var DAYS_IN_WEEK = 7;
+var MINUTES_IN_DAY = HOURS_IN_DAY * MINUTES_IN_HOUR;
 
 /**
  * @param {Object} schedule – Расписание Банды
@@ -21,7 +24,7 @@ var MINUTES_IN_DAY = 24 * 60;
 exports.getAppropriateMoment = function (schedule, duration, workingHours) {
     var bankSchedual = parseBankObj(workingHours);
     var gangSchedule = parseGangObj(schedule, bankSchedual[2]);
-    var freeTime = findFreeTime(gangSchedule, bankSchedual, duration);
+    var freeTime = getFreeTime(gangSchedule, bankSchedual, duration);
 
     return {
 
@@ -45,7 +48,7 @@ exports.getAppropriateMoment = function (schedule, duration, workingHours) {
                 return '';
             }
 
-            return showMessage(template, freeTime);
+            return returnMessage(template, freeTime);
         },
 
         /**
@@ -61,37 +64,38 @@ exports.getAppropriateMoment = function (schedule, duration, workingHours) {
 
 function parseBankObj(workingHours) {
     var bankSchedual = [];
-    var time = [];
+    var workingTime = [];
 
     var objectProp = Object.keys(workingHours);
     for (var i = 0; i < objectProp.length; i++) {
-        time = parseTime(workingHours[objectProp[i]]);
-        bankSchedual.push((Number(time[0]) * 60) + Number(time[1]));
+        workingTime = parseTime(workingHours[objectProp[i]]);
+        bankSchedual.push((Number(workingTime[0]) * MINUTES_IN_HOUR) + Number(workingTime[1]));
     }
-    bankSchedual.push(Number(time[2]));
+    bankSchedual.push(Number(workingTime[2]));
 
     return bankSchedual;
 }
 
-function parseTime(time, day) {
+function parseTime(workingTime, day) {
     if (!day) {
         var regTime = /[:]|[+]/;
-        time = time.split(regTime);
-    } else {
-        var regTimeDay = /\s|[:]|[+]/;
-        time = time.split(regTimeDay);
-    }
 
-    return time;
+        return workingTime.split(regTime);
+    }
+    var regTimeDay = /\s|[:]|[+]/;
+
+    return workingTime.split(regTimeDay);
 }
 
 function parseGangObj(schedule, timeZone) {
     var gangSchedule = {};
 
-    Object.keys(schedule).forEach(function (item) {
+    var keys = Object.keys(schedule);
+    keys.forEach(function (item) {
         gangSchedule[item] = [];
         for (var i = 0; i < schedule[item].length; i++) {
-            var eachDay = parsEachDay(schedule[item][i], timeZone);
+            var personalTime = schedule[item][i];
+            var eachDay = parsEachDay(personalTime, timeZone);
             gangSchedule[item].push(eachDay);
         }
     });
@@ -99,19 +103,21 @@ function parseGangObj(schedule, timeZone) {
     return gangSchedule;
 }
 
-function parsEachDay(daysAnaTime, timeZone) {
+function parsEachDay(personalTime, timeZone) {
     var convertTimeObj = {};
 
-    Object.keys(daysAnaTime).forEach(function (item) {
-        var convertTime = parseTime(daysAnaTime[item], true);
+    var keys = Object.keys(personalTime);
+    keys.forEach(function (item) {
+        var convertTime = parseTime(personalTime[item], true);
         var resetZone = 0;
         var dayIndex = DAYS.indexOf(convertTime[0]);
-        if (Number(convertTime[3]) !== timeZone) {
-            resetZone = (timeZone - convertTime[3]) * 60;
+        var timeZoneOfGang = Number(convertTime[3])
+        if (timeZoneOfGang !== timeZone) {
+            resetZone = (timeZone - timeZoneOfGang) * MINUTES_IN_HOUR;
         }
-        var time = + Number(convertTime[1]) * 60 + Number(convertTime[2]) +
-                                                    Number(resetZone) +
-                                                    (dayIndex * 1440);
+        var time = + Number(convertTime[1]) * MINUTES_IN_HOUR + Number(convertTime[2]) +
+                                            Number(resetZone) +
+                                            (dayIndex * MINUTES_IN_DAY);
         convertTimeObj['day' + item] = convertTime[0];
         convertTimeObj[item] = time;
     });
@@ -119,7 +125,7 @@ function parsEachDay(daysAnaTime, timeZone) {
     return convertTimeObj;
 }
 
-function findFreeTime(gangSchedule, bankSchedual, duration) {
+function getFreeTime(gangSchedule, bankSchedual, duration) {
     var arrayOfWeekDays = buildArrayOfWeek(bankSchedual);
     var arrGangTime = setkGangTime(gangSchedule, bankSchedual, arrayOfWeekDays);
     var processingTime = checkGangTime(arrGangTime, duration);
@@ -131,17 +137,17 @@ function buildArrayOfWeek(bankSchedual) {
     var weekDaysString = [];
     var bankOn = bankSchedual[0];
     var bankOff = bankSchedual[1];
-    for (var i = 0; i < 7; i++) {
-        for (var j = 0; j < MINUTES_IN_DAY; j++) {
-            weekDaysString.push(setArrPosition(i, j, bankOn, bankOff));
+    for (var day = 0; day < DAYS_IN_WEEK; day++) {
+        for (var min = 0; min < MINUTES_IN_DAY; min++) {
+            weekDaysString.push(setArrPosition(day, min, bankOn, bankOff));
         }
     }
 
     return weekDaysString;
 }
 
-function setArrPosition(i, j, bankOn, bankOff) {
-    if (j >= bankOn && j < bankOff) {
+function setArrPosition(day, min, bankOn, bankOff) {
+    if (min >= bankOn && min < bankOff) {
         return 1;
     }
 
@@ -152,23 +158,23 @@ function setkGangTime(gangSchedule, bankSchedual, arrDays) {
     Object.keys(gangSchedule).forEach(function (item) {
         for (var i = 0; i < gangSchedule[item].length; i++) {
             var dataOfEach = gangSchedule[item][i];
-            arrDays = checkInterval(dataOfEach, bankSchedual, arrDays);
+            arrDays = checkBusyTime(dataOfEach, bankSchedual, arrDays);
         }
     });
 
     return arrDays;
 }
 
-function checkInterval(timeOfEach, bankSchedual, arrDays) {
+function checkBusyTime(timeOfEach, bankSchedual, arrDays) {
     var data = {
         busyFrom: timeOfEach.from,
         busyTo: timeOfEach.to
     };
 
-    return setTimeForThis(data, arrDays);
+    return setBusyTime(data, arrDays);
 }
 
-function setTimeForThis(data, arrDays) {
+function setBusyTime(data, arrDays) {
     for (var i = data.busyFrom; i < data.busyTo; i++) {
         arrDays[i] = 0;
     }
@@ -179,30 +185,26 @@ function setTimeForThis(data, arrDays) {
 function checkGangTime(arrGangTime, duration) {
     var timeData = [];
     var indexForDay = 0;
-    var sortedTime = [];
+    var filteredTime = [];
 
     for (var i = 0; i < arrGangTime.length; i++) {
         if ((i % 1440) === 0 && indexForDay < 3) {
             var forEachDay = arrGangTime.slice(i, (i + 1440)).join('');
-            sortedTime = sortArr(forEachDay, indexForDay, duration);
+            filteredTime = filterArr(forEachDay, indexForDay, duration);
             indexForDay++;
-            timeData.push(sortedTime);
+            timeData.push(filteredTime);
         }
     }
 
     return timeData;
 }
 
-function sortArr(forEachDay, indexForDay, duration) {
+function filterArr(forEachDay, indexForDay, duration) {
     var regTime = forEachDay.match(/[1]+/g);
 
     if (regTime) {
         regTime = regTime.map(function (item) {
-            if (item.length >= duration) {
-                return item.length;
-            }
-
-            return false;
+            return (item.length >= duration) ? item.length : false;
         });
     } else {
         regTime = [false];
@@ -214,7 +216,7 @@ function sortArr(forEachDay, indexForDay, duration) {
 function calculateDuration(regTime, indexForDay, forEachDay) {
     var dataSortedTime = {};
 
-    dataSortedTime.dur = regTime;
+    dataSortedTime.duration = regTime;
     dataSortedTime.day = DAYS[indexForDay];
     dataSortedTime.start = [];
 
@@ -232,8 +234,8 @@ function calculateDuration(regTime, indexForDay, forEachDay) {
 function findFirstInput(freeTime) {
     var positiveResult = false;
     freeTime.forEach(function (item) {
-        for (var i = 0; i < item.dur.length; i++) {
-            if (item.dur[i]) {
+        for (var i = 0; i < item.duration.length; i++) {
+            if (item.duration[i]) {
                 positiveResult = true;
             }
         }
@@ -242,15 +244,15 @@ function findFirstInput(freeTime) {
     return positiveResult;
 }
 
-function showMessage(template, freeTime) {
-    var token = true;
+function returnMessage(template, freeTime) {
+    var brake = true;
     var timeData = [];
     freeTime.forEach(function (item) {
-        for (var i = 0; i < item.dur.length; i++) {
-            if (item.dur[i] && token) {
+        for (var i = 0; i < item.duration.length; i++) {
+            if (item.duration[i] && brake) {
                 timeData.push(item.day);
                 timeData.push(item.start[i]);
-                token = false;
+                brake = false;
             }
         }
     });
@@ -259,15 +261,15 @@ function showMessage(template, freeTime) {
 }
 
 function buildMessage(template, timeData) {
-    var regD = /%[D]{2}/;
-    var regT = /%[HM]{2}/;
+    var regDay = /%[D]{2}/;
+    var regTime = /%[HM]{2}/;
     var hours = String(parseInt(timeData[1] / 60)) || '00';
     hours = (hours.length === 1) ? '0' + hours : hours;
     var minute = String(timeData[1] % 60) || '00';
     minute = (minute.length === 1) ? '0' + minute : minute;
-    template = template.replace(regD, timeData[0])
-                        .replace(regT, hours)
-                        .replace(regT, minute);
+    template = template.replace(regDay, timeData[0])
+                        .replace(regTime, hours)
+                        .replace(regTime, minute);
 
     return template;
 }
