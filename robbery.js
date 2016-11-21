@@ -11,6 +11,7 @@ var HOURS_IN_DAY = 24;
 var MINUTES_IN_HOUR = 60;
 var DAYS_IN_WEEK = 7;
 var MINUTES_IN_DAY = HOURS_IN_DAY * MINUTES_IN_HOUR;
+var DAYSFORROB = 3;
 
 /**
  * @param {Object} schedule – Расписание Банды
@@ -64,27 +65,25 @@ exports.getAppropriateMoment = function (schedule, duration, workingHours) {
 
 function parseBankObj(workingHours) {
     var bankSchedual = [];
-    var workingTime = [];
+    var bankWorkingTime = [];
+    var propertiesName = Object.keys(workingHours);
 
-    var objectProp = Object.keys(workingHours);
-    for (var i = 0; i < objectProp.length; i++) {
-        workingTime = parseTime(workingHours[objectProp[i]]);
-        bankSchedual.push((Number(workingTime[0]) * MINUTES_IN_HOUR) + Number(workingTime[1]));
+    for (var i = 0; i < propertiesName.length; i++) {
+        bankWorkingTime = parseTime(workingHours[propertiesName[i]]);
+        var hours = parseInt(bankWorkingTime[0]);
+        var minutes = parseInt(bankWorkingTime[1]);
+        bankSchedual.push((hours * MINUTES_IN_HOUR) + minutes);
     }
-    bankSchedual.push(Number(workingTime[2]));
+    bankSchedual.push(parseInt(bankWorkingTime[2]));
 
     return bankSchedual;
 }
 
 function parseTime(workingTime, day) {
-    if (!day) {
-        var regTime = /[:]|[+]/;
-
-        return workingTime.split(regTime);
-    }
+    var regTime = /[:]|[+]/;
     var regTimeDay = /\s|[:]|[+]/;
 
-    return workingTime.split(regTimeDay);
+    return !day ? workingTime.split(regTime) : workingTime.split(regTimeDay);
 }
 
 function parseGangObj(schedule, timeZone) {
@@ -188,8 +187,8 @@ function checkGangTime(arrGangTime, duration) {
     var filteredTime = [];
 
     for (var i = 0; i < arrGangTime.length; i++) {
-        if ((i % 1440) === 0 && indexForDay < 3) {
-            var forEachDay = arrGangTime.slice(i, (i + 1440)).join('');
+        if ((i % MINUTES_IN_DAY) === 0 && indexForDay < DAYSFORROB) {
+            var forEachDay = arrGangTime.slice(i, (i + MINUTES_IN_DAY)).join('');
             filteredTime = filterArr(forEachDay, indexForDay, duration);
             indexForDay++;
             timeData.push(filteredTime);
